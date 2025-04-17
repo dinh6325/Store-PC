@@ -1,0 +1,17 @@
+<h1>Giỏ hàng của bạn</h1>
+
+{% if cart_items %}
+    <ul>
+        {% for item in cart_items %}
+            <li>
+                {{ item.product.name }} - {{ item.quantity }} x {{ item.product.price }} VND
+                <br>
+                Tổng: {{ item.product.price * item.quantity }} VND
+            </li>
+        {% endfor %}
+    </ul>
+
+    <p><strong>Tổng cộng: {{ total_price }} VND</strong></p>
+{% else %}
+    <p>Giỏ hàng của bạn hiện đang trống.</p>
+{% endif %}

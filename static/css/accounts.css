@@ -1,0 +1,80 @@
+/* accounts/static/css/accounts.css */
+
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh; /* Giảm chiều cao container */
+    background-color: #f8f9fa;
+}
+
+.auth-card {
+    background-color: #fff;
+    padding: 20px; /* Giảm padding card */
+    border-radius: 5px; /* Giảm bo tròn */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Bóng đổ nhẹ hơn */
+    width: 100%;
+    max-width: 300px; /* Giảm chiều rộng tối đa */
+}
+
+.auth-card h2 {
+    color: #333;
+    margin-bottom: 15px; /* Giảm margin tiêu đề */
+    text-align: center;
+    font-size: 1.3rem; /* Giảm kích thước tiêu đề */
+    font-weight: 500;
+}
+
+.auth-card .form-label {
+    font-size: 0.85rem; /* Giảm kích thước label */
+    color: #555;
+    margin-bottom: 2px; /* Giảm margin label */
+}
+
+.auth-card .form-control {
+    border: 1px solid #ddd;
+    border-radius: 3px; /* Giảm bo tròn input */
+    padding: 7px; /* Giảm padding input */
+    margin-bottom: 10px; /* Giảm margin input */
+    box-sizing: border-box;
+    font-size: 0.85rem; /* Giảm kích thước chữ input */
+}
+
+.auth-card .btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 3px; /* Giảm bo tròn nút */
+    padding: 8px 12px; /* Giảm padding nút */
+    cursor: pointer;
+    width: 100%;
+    font-size: 0.9rem; /* Giảm kích thước chữ nút */
+    transition: background-color 0.3s ease;
+}
+
+.auth-card .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.auth-card .mt-3 {
+    margin-top: 10px; /* Giảm margin top */
+    text-align: center;
+    color: #777;
+    font-size: 0.8rem; /* Giảm kích thước chữ */
+}
+
+.auth-card .mt-3 a {
+    color: #007bff;
+    font-weight: 400;
+}
+
+.errorlist {
+    color: #dc3545;
+    margin-top: 3px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+}
+
+.errorlist li {
+    list-style-type: none;
+}
