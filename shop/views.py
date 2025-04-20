@@ -1,61 +1,188 @@
-# views.py trong app 'shop'
-from django.shortcuts import render,redirect
-from .models import Product, Category
-from .forms import ProductForm
-
-from django.shortcuts import render, get_object_or_404
-
-# View cho danh sách sản phẩm
-def product_list(request):
-    products = Product.objects.all()  # Lấy tất cả sản phẩm
-    return render(request, 'shop/product_list.html', {'products': products})
-
-# View cho chi tiết sản phẩm
-def product_detail(request, product_id):
-    product = get_object_or_404(Product, id=product_id)  # Lấy sản phẩm theo ID
-    return render(request, 'shop/product_detail.html', {'product': product})
-
-def search_products(request):
-    query = request.GET.get('q', '')  # Lấy từ khóa tìm kiếm từ URL
-    if query:
-        products = Product.objects.filter(name__icontains=query)  # Tìm sản phẩm có tên chứa từ khóa
-    else:
-        products = Product.objects.all()  # Nếu không có từ khóa, hiển thị tất cả sản phẩm
-    
-    return render(request, 'shop/search_results.html', {'products': products, 'query': query})
-
-def filter_products(request):
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import Product, Category, Order, OrderItem
+from .forms import ProductForm, CheckoutForm
+def home(request):
+    # Lấy hết category để render menu
     categories = Category.objects.all()
-    category_filter = request.GET.get('category', '')
-    price_min = request.GET.get('price_min', 0)
-    price_max = request.GET.get('price_max', 1000000)
-    rating_min = request.GET.get('rating_min', 0)
-    
-    products = Product.objects.filter(
-        category__id=category_filter,
-        price__gte=price_min,
-        price__lte=price_max,
-        rating__gte=rating_min
-    )
-
-    return render(request, 'shop/product_list.html', {
-        'products': products,
+    # (Tuỳ chọn) Lấy sản phẩm để hiển thị trên trang chủ
+    products   = Product.objects.all()  
+    return render(request, 'shop/home.html', {
         'categories': categories,
-        'category_filter': category_filter,
+        'products': products,
+    })
+# Hiển thị danh sách sản phẩm với tìm kiếm & lọc
+def superuser_required(view_func):
+    return login_required(user_passes_test(lambda u: u.is_superuser)(view_func))
+# shop/views.py
+from django.shortcuts import get_object_or_404
+
+def category_products(request, slug):
+    categories = Category.objects.all()
+    cat = get_object_or_404(Category, slug=slug)
+    products = Product.objects.filter(category=cat)
+    return render(request, 'shop/product_list.html', {
+        'categories': categories,
+        'products': products,
+        'current_category': slug,
+        'q': '',
+        'category_filter': '',
+        'category_slug': None,
+        # bỏ qua các filter khác
+    })  
+def home(request):
+    categories = Category.objects.all()
+    qs = Product.objects.all()
+    q = request.GET.get('q', '').strip()
+    cat = request.GET.get('category', '')
+    price_min = request.GET.get('price_min', '')
+    price_max = request.GET.get('price_max', '')
+    rating_min = request.GET.get('rating_min', '')
+    if q:
+        qs = qs.filter(name__icontains=q)
+    if cat:
+        qs = qs.filter(category__id=cat)
+    if price_min:
+        qs = qs.filter(price__gte=price_min)
+    if price_max:
+        qs = qs.filter(price__lte=price_max)
+    if rating_min:
+        qs = qs.filter(rating__gte=rating_min)
+    return render(request, 'shop/product_list.html', {
+        'products': qs,
+        'categories': categories,
+        'q': q,
+        'category_filter': cat,
         'price_min': price_min,
         'price_max': price_max,
         'rating_min': rating_min,
     })
-def cart_view(request):
-    # Đây chỉ là ví dụ mẫu. Bạn có thể thay đổi nội dung tuỳ ý
-    return render(request, 'shop/cart.html', {})
 
-def add_product(request):
+# Chi tiết sản phẩm
+
+def product_detail(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    return render(request, 'shop/product_detail.html', {'product': product})
+
+# Giỏ hàng (session-based)
+
+def cart_view(request):
+    cart = request.session.get('cart', {})
+    if request.method == 'POST':
+        pid = str(request.POST.get('product_id'))
+        qty = int(request.POST.get('quantity', 1))
+        cart[pid] = cart.get(pid, 0) + qty
+        request.session['cart'] = cart
+        return redirect('cart')
+
+    items, total = [], 0
+    for pid, qty in cart.items():
+        product = get_object_or_404(Product, id=pid)
+        line_total = product.price * qty
+        items.append({
+            'product': product,
+            'quantity': qty,
+            'price_vnd': product.price_vnd,
+            'line_total_vnd': f"{int(line_total):,}".replace(",", ".") + " VND",
+        })
+        total += line_total
+    total_vnd = f"{int(total):,}".replace(",", ".") + " VND"
+    return render(request, 'shop/cart.html', {
+        'items': items,
+        'total': total,
+        'total_vnd': total_vnd,
+    })
+
+@login_required
+def checkout(request):
+    cart = request.session.get('cart', {})
+    if not cart:
+        return redirect('product_list')
+
+    if request.method == 'POST':
+        form = CheckoutForm(request.POST)
+        if form.is_valid():
+            order = Order.objects.create(
+                user=request.user,
+                full_name=form.cleaned_data['full_name'],
+                address=form.cleaned_data['address'],
+                city=form.cleaned_data['city'],
+                postal_code=form.cleaned_data['postal_code'],
+            )
+            for pid, qty in cart.items():
+                product = get_object_or_404(Product, id=pid)
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    price=product.price,
+                    quantity=qty,
+                )
+            # Xóa giỏ hàng sau khi đặt xong
+            del request.session['cart']
+            return redirect('order_success', order_id=order.id)
+    else:
+        form = CheckoutForm()
+
+    # Chuẩn bị dữ liệu để hiển thị lên template
+    items = []
+    total = 0
+    for pid, qty in cart.items():
+        product = get_object_or_404(Product, id=pid)
+        line_total = product.price * qty
+        items.append({'product': product, 'quantity': qty, 'line_total': line_total})
+        total += line_total
+
+    return render(request, 'shop/checkout.html', {
+        'form': form,
+        'items': items,
+        'total': total,
+    })
+
+
+@login_required
+def order_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, 'shop/order_success.html', {'order': order})
+# Decorator chỉ cho phép superuser
+ 
+# Admin CRUD sản phẩm
+@superuser_required
+def admin_product_list(request):
+    products = Product.objects.all().order_by('-created_at')
+    return render(request, 'shop/admin_product_list.html', {'products': products})
+
+@superuser_required
+def admin_product_create(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            return redirect('product_list')
+            return redirect('admin_product_list')
     else:
         form = ProductForm()
-    return render(request, 'shop/add_product.html', {'form': form})
+    return render(request, 'shop/admin_product_form.html', {'form': form})
+
+@superuser_required
+def admin_product_update(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            form.save()
+            return redirect('admin_product_list')
+    else:
+        form = ProductForm(instance=product)
+    return render(request, 'shop/admin_product_form.html', {
+        'form': form,
+        'product': product,
+    })
+
+@superuser_required
+def admin_product_delete(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        product.delete()
+        return redirect('admin_product_list')
+    return render(request, 'shop/admin_product_confirm_delete.html', {
+        'product': product,
+    })

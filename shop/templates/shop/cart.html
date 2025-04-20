@@ -1,17 +1,50 @@
-<h1>Giỏ hàng của bạn</h1>
+{% extends 'base.html' %}
+{% load static %}
 
-{% if cart_items %}
-    <ul>
-        {% for item in cart_items %}
-            <li>
-                {{ item.product.name }} - {{ item.quantity }} x {{ item.product.price }} VND
-                <br>
-                Tổng: {{ item.product.price * item.quantity }} VND
-            </li>
+{% block content %}
+<div class="container my-5">
+  <h1>Giỏ hàng của bạn</h1>
+  {% if items %}
+    <table class="table rounded shadow-sm">
+      <thead class="table-light">
+        <tr>
+          <th>Sản phẩm</th>
+          <th class="text-end">Đơn giá</th>
+          <th class="text-center">Số lượng</th>
+          <th class="text-end">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <a href="{% url 'product_detail' item.product.id %}">{{ item.product.name }}</a>
+          </td>
+          <td class="text-end">{{ item.price_vnd }}</td>
+          <td class="text-center">{{ item.quantity }}</td>
+          <td class="text-end">{{ item.line_total_vnd }}</td>
+        </tr>
         {% endfor %}
-    </ul>
+      </tbody>
+      <tfoot>
+        <tr class="table-light">
+          <th colspan="3" class="text-end">Tổng cộng:</th>
+          <th class="text-end">{{ total_vnd }}</th>
+        </tr>
+      </tfoot>
+    </table>
 
-    <p><strong>Tổng cộng: {{ total_price }} VND</strong></p>
-{% else %}
-    <p>Giỏ hàng của bạn hiện đang trống.</p>
-{% endif %}
+    <div class="d-flex gap-2">
+      <a href="{% url 'home' %}" class="btn btn-secondary">
+        Tiếp tục mua hàng
+      </a>
+      <a href="{% url 'checkout' %}" class="btn btn-success">
+        Thanh toán
+      </a>
+    </div>
+  {% else %}
+    <p>Giỏ hàng trống.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary">Mua ngay</a>
+  {% endif %}
+</div>
+{% endblock %}

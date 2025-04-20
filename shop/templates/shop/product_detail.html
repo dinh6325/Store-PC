@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="card shadow-sm">
+    <div class="row g-0">
+      <!-- Ảnh sản phẩm -->
+      <div class="col-md-6">
+        {% if product.image %}
+          <img src="{{ product.image.url }}"
+               class="img-fluid rounded-start p-3"
+               alt="{{ product.name }}">
+        {% else %}
+          <img src="https://via.placeholder.com/600x600?text=No+Image"
+               class="img-fluid rounded-start p-3"
+               alt="No image">
+        {% endif %}
+      </div>
+
+      <!-- Thông tin sản phẩm -->
+      <div class="col-md-6">
+        <div class="card-body">
+          <h2 class="card-title fw-bold">{{ product.name }}</h2>
+          <p class="text-muted small mb-2">Danh mục: {{ product.category.name }}</p>
+          <h3 class="text-danger mb-3">{{ product.price_vnd }}</h3>
+          <div class="mb-3 d-flex align-items-center">
+            <span class="text-warning me-2">⭐ {{ product.rating }}</span>
+            <span class="text-muted">Còn lại: {{ product.stock }}</span>
+          </div>
+          <p class="mb-4">{{ product.description }}</p>
+
+          <form method="post" action="{% url 'cart' %}">
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <div class="d-flex align-items-center mb-4">
+              <label class="me-3 mb-0">Số lượng:</label>
+              <div class="input-group">
+                <button type="button" class="btn btn-outline-secondary" id="decBtn">−</button>
+                <input type="number"
+                       name="quantity"
+                       value="1"
+                       min="1"
+                       max="{{ product.stock }}"
+                       class="form-control text-center"
+                       id="qtyInput"
+                       style="max-width: 60px;">
+                <button type="button" class="btn btn-outline-secondary" id="incBtn">+</button>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-success flex-fill">
+                <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+              </button>
+              <a href="{% url 'checkout' %}" class="btn btn-primary flex-fill">
+                Mua ngay
+              </a>
+            </div>
+          </form>
+
+          <a href="{% url 'home' %}" class="btn btn-link mt-3">
+            ← Quay lại danh sách
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // JS tăng/giảm số lượng
+  const decBtn = document.getElementById('decBtn');
+  const incBtn = document.getElementById('incBtn');
+  const qtyInput = document.getElementById('qtyInput');
+
+  decBtn.addEventListener('click', () => {
+    let v = parseInt(qtyInput.value) || 1;
+    if (v > 1) qtyInput.value = v - 1;
+  });
+
+  incBtn.addEventListener('click', () => {
+    let v = parseInt(qtyInput.value) || 1;
+    if (v < {{ product.stock }}) qtyInput.value = v + 1;
+  });
+</script>
+
+<style>
+  .card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  .card-body {
+    padding: 2rem;
+  }
+  .shadow-sm {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  }
+  .input-group .btn {
+    border-radius: 0;
+  }
+</style>
+{% endblock %}
+  

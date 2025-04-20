@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5 text-center">
+  <h1>Bạn có chắc muốn xóa sản phẩm “{{ product.name }}” không?</h1>
+  <form method="post" class="d-inline-block mt-4">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger me-2">Xóa</button>
+    <a href="{% url 'admin_product_list' %}" class="btn btn-secondary">Hủy</a>
+  </form>
+</div>
+{% endblock %}

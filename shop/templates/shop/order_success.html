@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-5 text-center">
+  <h1>Đặt hàng thành công!</h1>
+  <p>Mã đơn hàng: {{ order.id }}</p>
+  <a href="{% url 'home' %}" class="btn btn-primary">Tiếp tục mua hàng</a>
+</div>
+{% endblock %}
