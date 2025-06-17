@@ -47,7 +47,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'shop.context_processors.categories',
+                'shop.context_processors.latest_order_status',
             ],
         },
     },

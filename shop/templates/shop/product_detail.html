@@ -8,13 +8,9 @@
       <!-- Ảnh sản phẩm -->
       <div class="col-md-6">
         {% if product.image %}
-          <img src="{{ product.image.url }}"
-               class="img-fluid rounded-start p-3"
-               alt="{{ product.name }}">
+          <img src="{{ product.image.url }}" class="img-fluid rounded-start p-3" alt="{{ product.name }}">
         {% else %}
-          <img src="https://via.placeholder.com/600x600?text=No+Image"
-               class="img-fluid rounded-start p-3"
-               alt="No image">
+          <img src="https://via.placeholder.com/600x600?text=No+Image" class="img-fluid rounded-start p-3" alt="No image">
         {% endif %}
       </div>
 
@@ -25,22 +21,27 @@
           <p class="text-muted small mb-2">Danh mục: {{ product.category.name }}</p>
           <h3 class="text-danger mb-3">{{ product.price_vnd }}</h3>
           <div class="mb-3 d-flex align-items-center">
-            <span class="text-warning me-2">⭐ {{ product.rating }}</span>
-            <span class="text-muted">Còn lại: {{ product.stock }}</span>
+            {% if product.stock > 0 %}
+              <span class="text-warning me-2">⭐ {{ product.rating }}</span>
+              <span class="text-muted">Còn lại: {{ product.stock }}</span>
+            {% else %}
+              <span class="text-danger fw-bold">Hết hàng</span>
+            {% endif %}
           </div>
           <p class="mb-4">{{ product.description }}</p>
 
-          <form method="post" action="{% url 'cart' %}">
-            {% csrf_token %}
-            <input type="hidden" name="product_id" value="{{ product.id }}">
-            <div class="d-flex align-items-center mb-4">
-              <label class="me-3 mb-0">Số lượng:</label>
-              <div class="input-group">
-                <button type="button" class="btn btn-outline-secondary" id="decBtn">−</button>
-                <input type="number"
-                       name="quantity"
-                       value="1"
-                       min="1"
+          {% if product.stock > 0 %}
+	          <form method="post" action="{% url 'shop:cart' %}">
+	            {% csrf_token %}
+	            <input type="hidden" name="product_id" value="{{ product.id }}">
+	            <div class="d-flex align-items-center mb-4">
+	              <label class="me-3 mb-0">Số lượng:</label>
+	              <div class="input-group">
+	                <button type="button" class="btn btn-outline-secondary" id="decBtn">−</button>
+	                <input type="number"
+	                       name="quantity"
+	                       value="1"
+	                       min="1"
                        max="{{ product.stock }}"
                        class="form-control text-center"
                        id="qtyInput"
@@ -53,18 +54,91 @@
               <button type="submit" class="btn btn-success flex-fill">
                 <i class="bi bi-cart-plus"></i> Thêm vào giỏ
               </button>
-              <a href="{% url 'checkout' %}" class="btn btn-primary flex-fill">
+              <button type="button" id="buyNowBtn" class="btn btn-primary flex-fill">
                 Mua ngay
-              </a>
+              </button>
             </div>
           </form>
+          {% else %}
+            <div class="alert alert-danger fw-bold" role="alert">
+              Sản phẩm hiện đã hết hàng.
+            </div>
+          {% endif %}
 
-          <a href="{% url 'home' %}" class="btn btn-link mt-3">
-            ← Quay lại danh sách
-          </a>
+	          <div id="paymentForm" class="mt-4" style="display:none;">
+	            <h4>Thanh toán</h4>
+	            <form method="post" action="{% url 'shop:cart' %}">
+	              {% csrf_token %}
+	              <input type="hidden" name="product_id" value="{{ product.id }}">
+	              <div class="mb-3">
+	                <label for="quantityPayment" class="form-label">Số lượng</label>
+	                <input type="number" id="quantityPayment" name="quantity" value="1" min="1" max="{{ product.stock }}" class="form-control" required>
+	              </div>
+	              <button type="submit" class="btn btn-success">Xác nhận thanh toán</button>
+	              <button type="button" id="cancelPaymentBtn" class="btn btn-secondary ms-2">Hủy</button>
+	            </form>
+	          </div>
+
+	          <a href="{% url 'shop:home' %}" class="btn btn-link mt-3">
+	            ← Quay lại danh sách
+	          </a>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Messages display -->
+  <div class="mt-4">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Comments Section -->
+  <div class="mt-5">
+    <h3>Comment sản phẩm</h3>
+
+    {% if comments|length > 0 %}
+      <ul class="list-group mb-4">
+        {% for comment in comments %}
+          <li class="list-group-item">
+            <strong>{{ comment.user.username }}</strong> 
+            <span class="text-warning">⭐ {{ comment.rating }}</span>
+            <p>{{ comment.comment|linebreaks }}</p>
+            <small class="text-muted">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Chưa có comment nào cho sản phẩm này.</p>
+    {% endif %}
+
+    <!-- Comment Form -->
+    {% if user.is_authenticated %}
+      <h4>Viết comment của bạn</h4>
+      <form method="post" action="{% url 'shop:product_detail' product.id %}">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="mb-3">
+          {{ form.rating.label_tag }}
+          {{ form.rating }}
+          {{ form.rating.errors }}
+        </div>
+        <div class="mb-3">
+          {{ form.comment.label_tag }}
+          {{ form.comment }}
+          {{ form.comment.errors }}
+        </div>
+        <button type="submit" class="btn btn-primary">Gửi comment</button>
+      </form>
+    {% else %}
+      <p><a href="{% url 'login' %}?next={{ request.path }}">Đăng nhập</a> để viết comment.</p>
+    {% endif %}
   </div>
 </div>
 
@@ -74,14 +148,28 @@
   const incBtn = document.getElementById('incBtn');
   const qtyInput = document.getElementById('qtyInput');
 
-  decBtn.addEventListener('click', () => {
+  decBtn.addEventListener('click', function() {
     let v = parseInt(qtyInput.value) || 1;
     if (v > 1) qtyInput.value = v - 1;
   });
 
-  incBtn.addEventListener('click', () => {
+  const maxStock = {{ product.stock|default:0 }};
+  incBtn.addEventListener('click', function() {
     let v = parseInt(qtyInput.value) || 1;
-    if (v < {{ product.stock }}) qtyInput.value = v + 1;
+    if (v < maxStock) qtyInput.value = v + 1;
+  });
+
+  // Show/hide payment form on Mua ngay button click
+  const buyNowBtn = document.getElementById('buyNowBtn');
+  const paymentForm = document.getElementById('paymentForm');
+  const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
+
+  buyNowBtn.addEventListener('click', function() {
+    paymentForm.style.display = 'block';
+  });
+
+  cancelPaymentBtn.addEventListener('click', function() {
+    paymentForm.style.display = 'none';
   });
 </script>
 
@@ -101,4 +189,3 @@
   }
 </style>
 {% endblock %}
-  
